@@ -54,7 +54,7 @@ def get_posts():
     cursor.execute("""SELECT * FROM  posts """)
     posts = cursor.fetchall()
 
-    return {"data": posts}
+    return {"data": posts} 
 
 @app.post("/posts", status_code=status.HTTP_201_CREATED)
 def create_posts(post: Post):
