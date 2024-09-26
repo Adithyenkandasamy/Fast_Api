@@ -1,12 +1,19 @@
 from typing import Optional
-from fastapi import FastAPI, Response, status, HTTPException
+from fastapi import FastAPI, Response, status, HTTPException, Depends
 from pydantic import BaseModel
 from random import randrange
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import time
+from . import models
+from sqlalchemy.orm import Session 
+from .database import engine, get_db
+ 
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+
 
 class Post(BaseModel):
     title: str
@@ -24,7 +31,7 @@ try:
 except Exception as error:
     print("Connecting to the database failed") 
     print("Error: ", error)
-    time.sleep(2) 
+    time.sleep(2)
 
 my_posts = [
     {"title": "title of post 1", "content": "content of post 1", "id": 1},
@@ -46,11 +53,21 @@ def find_index_post(id: int):
 def root():
     return {"message": "Hello World"}
 
+
+
+@app.get("/sqlalchemy")
+def test_posts(db: Session = Depends(get_db)):
+    posts = db.query(models.Post).all()
+
+    return{"data": posts} 
+
+
+
 @app.get("/posts")
 def get_posts():
-
-    cursor.execute("""SELECT * FROM  posts """)
-    posts = cursor.fetchall()
+    # cursor.execute("""SELECT * FROM  posts """)
+    # posts = cursor.fetchall()
+    posts = db.query(models.Post).all()
 
     return {"data": posts} 
 
@@ -99,4 +116,5 @@ def update_put(id: int, post: Post):
     
   
     return {"data": updated_post}
+
 
