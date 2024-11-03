@@ -116,5 +116,3 @@ def update_put(id: int, post: Post):
     
   
     return {"data": updated_post}
-
-
