@@ -20,7 +20,7 @@ class Post(BaseModel):
     published: bool = True
     rating: Optional[int] = None
 try:
-    conn = psycopg2.connect(host='localhost', database='postgres', user='fastapi', 
+    conn = psycopg2.connect(host='localhost', database='postgres', user='postgres', 
     password='pgadmin', cursor_factory=RealDictCursor)
     cursor = conn.cursor()
     print(cursor.execute("""SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
@@ -58,7 +58,7 @@ def root():
 def test_posts(db: Session = Depends(get_db)):
     posts = db.query(models.Post).all()
 
-    return{"data": posts} 
+    return{"data": "sucessfull"} 
 
 
 
@@ -66,19 +66,23 @@ def test_posts(db: Session = Depends(get_db)):
 def get_posts(db: Session = Depends(get_db)):
     posts = db.query(models.Post).all()
 
-    return {"data": posts} 
+    return {"data": posts}  
 
 @app.post("/posts", status_code=status.HTTP_201_CREATED)
-def create_posts(post: Post):
-    cursor.execute("""INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING *""",(post.title, post.content, post.published))
-    new_post = cursor.fetchone()
-    conn.commit()
+def create_posts(post: Post, db: Session = Depends(get_db)):
+    new_post = models.Post(**post.dict())
+    db.add(new_post)
+    db.commit()
+    db.refresh(new_post)
     return {"data": new_post}
 
 @app.get("/posts/{id}")
-def get_post(id: str):
-    cursor.execute(""" SELECT * from posts WHERE id = %s """, (str(id),))
-    post = cursor.fetchone()
+def get_post(id: str, db: Session = Depends(get_db)):
+    # cursor.execute(""" SELECT * from posts WHERE id = %s """, (str(id),))
+    # post = cursor.fetchone()
+    post = db.query(models.Post).filter(models.Post.id == id).first()
+    print(post)
+
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
                             detail=f"Post with id: {id} was not found")
