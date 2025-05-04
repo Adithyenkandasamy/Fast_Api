@@ -1,3 +1,4 @@
+import sys
 from typing import Optional
 from fastapi import FastAPI, Response, status, HTTPException, Depends
 from pydantic import BaseModel
@@ -13,16 +14,14 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-
-
 class Post(BaseModel):
     title: str
     content: str
     published: bool = True
     rating: Optional[int] = None
 try:
-    conn = psycopg2.connect(host='localhost', database='fastapi', user='postgres', 
-    password='password', cursor_factory=RealDictCursor)
+    conn = psycopg2.connect(host='localhost', database='postgres', user='fastapi', 
+    password='pgadmin', cursor_factory=RealDictCursor)
     cursor = conn.cursor()
     print(cursor.execute("""SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
     """))
@@ -64,9 +63,7 @@ def test_posts(db: Session = Depends(get_db)):
 
 
 @app.get("/posts")
-def get_posts():
-    # cursor.execute("""SELECT * FROM  posts """)
-    # posts = cursor.fetchall()
+def get_posts(db: Session = Depends(get_db)):
     posts = db.query(models.Post).all()
 
     return {"data": posts} 
