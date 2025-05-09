@@ -4,15 +4,14 @@ from random import randrange
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import time
-from . import models, schemas
+from . import models, schemas, utils
 from sqlalchemy.orm import Session 
 from .database import engine, get_db
 from typing import List
+from passlib.context import CryptContext
 
 Post = schemas.PostCreate
- 
 models.Base.metadata.create_all(bind=engine)
-
 app = FastAPI()
 
 
@@ -108,11 +107,26 @@ def update_put(id: int, updated_post: Post, db: Session = Depends(get_db)):
     db.commit()
     return post_query.first()
 
-@app.post("/users", status_code=status.HTTP_201_CREATED)
+@app.post("/users", status_code=status.HTTP_201_CREATED, response_model = schemas.UserOut)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+        
+        hashed_password = utils.hash(user.password)
+        user.password = hashed_password 
+
+
         new_user = models.Users(**user.dict())
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
         
-        return new_user
+        return new_user 
+
+@app.get('/users/{id}', response_model = schemas.UserOut)
+def get_users(id: int, db: Session = Depends(get_db)):
+    user = db.query(models.Users).filter(models.Users.id == id).first ()
+
+    if not user: 
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
+                detail = f"User with id: {id} does not exist")
+
+    return user
